@@ -4,6 +4,7 @@ import SearchItem from './SearchItem';
 import AddItem from './AddItem';
 import Content from './Content';
 import Footer from './Footer';
+import apiRequest from './apiRequest';
 
 import { useState, useEffect } from 'react';
 
@@ -24,6 +25,10 @@ function App() {
     console.log('updating item state')
   }, [items])
   */
+
+  // useEffect does everything inside when the state changes. Right now that 
+  // check is on line 49 with the [] meaning it only does it when the page is first loaded. 
+
   useEffect(() => {
     
     const fetchItems = async () => {
@@ -44,21 +49,57 @@ function App() {
   }, [])
 
 
-  const addItem = (item) => {
+  const addItem = async (item) => {
     const id = items.length ? items[items.length - 1].id + 1 : 1; 
     const myNewItem = {id, checked: false, item}
     const listItems = [...items, myNewItem]
     setItems(listItems)
+
+    const postOptions = {
+      method: 'POST',
+      headers: {
+        'Content-Type' : 'application/json'
+      }, 
+      body: JSON.stringify(myNewItem)
+    }
+
+    const result = await apiRequest(API_URL, postOptions)
+    if (result) setFetchError(result)
+
   }
 
-  const handleCheck = (id) => {
+  const handleCheck = async (id) => {
     const listItems = items.map((item) => item.id === id ? { ...item, checked: !item.checked } : item)
     setItems(listItems)
+
+    // We already have checked the item in listItems so we just need to set the 
+    // checked status in the database for the specific item to match what we have
+    // in listItems array. 
+    const myItem = listItems.filter(item => item.id === id)
+    const updateOptions = {
+      method: 'PATCH', 
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      // We used the filter on line 78 which returns an arr of 1 so we access the 
+      // first item in that arr
+      body: JSON.stringify({checked: myItem[0].checked})
+    }
+    const reqUrl = `${API_URL}/${id}`
+    const result = await apiRequest(reqUrl, updateOptions)
+    if (result) setFetchError(result)
+
   }
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     const listItems = items.filter((item) => item.id !== id)
     setItems(listItems)
+
+    const deleteOptions = {method: 'DELETE'}
+    const reqUrl = `${API_URL}/${id}`
+    const result = await apiRequest(reqUrl, deleteOptions)
+    if (result) setFetchError(result)
+    
   }
 
   const handleSubmit = (e) => {
